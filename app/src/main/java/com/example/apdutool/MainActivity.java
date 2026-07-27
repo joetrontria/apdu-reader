@@ -4,7 +4,6 @@ import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.IsoDep;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -18,9 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 /**
@@ -96,6 +93,13 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         sequenceButton.setOnClickListener(v ->
         {
             apduInput.setText(ApduPreset.type4Sequence());
+            scriptText = apduInput.getText().toString();
+        });
+
+        Button writeSequenceButton = findViewById(R.id.write_sequence_button);
+        writeSequenceButton.setOnClickListener(v ->
+        {
+            apduInput.setText(ApduPreset.writeSequence());
             scriptText = apduInput.getText().toString();
         });
 
@@ -239,67 +243,39 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
     }
 
     /**
-     * Send every APDU in the editor, in order, over the one open connection.
-     * Stops early if a command fails, because later steps usually depend on it.
+     * Send every command in the editor, in order, over the one open
+     * connection. Directives such as write and writemsg are expanded first.
+     * Stops early on failure, because later steps usually depend on earlier
+     * ones having worked.
      *
      * @param isoDep the connected channel to the tag
      * @throws IOException if the tag stops responding
      */
     private void runScript(IsoDep isoDep) throws IOException
     {
-        List<byte[]> commands = new ArrayList<>();
-        List<String> labels = new ArrayList<>();
+        ApduScript.Result parsed = ApduScript.parse(scriptText);
 
-        int lineNumber = 0;
-
-        for (String rawLine : scriptText.split("\n"))
+        for (String problem : parsed.problems)
         {
-            lineNumber++;
-            String line = stripComment(rawLine);
-
-            if (TextUtils.isEmpty(line))
-            {
-                continue;
-            }
-
-            byte[] command;
-
-            try
-            {
-                command = HexUtil.toBytes(line);
-            }
-            catch (IllegalArgumentException e)
-            {
-                log("Line " + lineNumber + ": " + e.getMessage() + " - skipped.");
-                continue;
-            }
-
-            if (command.length < 4)
-            {
-                log("Line " + lineNumber + ": needs at least 4 bytes (CLA INS P1 P2) - skipped.");
-                continue;
-            }
-
-            commands.add(command);
-            labels.add("line " + lineNumber);
+            log(problem);
         }
 
-        if (commands.isEmpty())
+        if (parsed.steps.isEmpty())
         {
-            log("Nothing to send - the editor has no valid APDUs.");
+            log("Nothing to send - the editor has no valid commands.");
             return;
         }
 
-        log("Sending " + commands.size() + " APDU(s) on this tap.\n");
+        log("Sending " + parsed.steps.size() + " APDU(s) on this tap.\n");
 
-        for (int i = 0; i < commands.size(); i++)
+        for (int i = 0; i < parsed.steps.size(); i++)
         {
-            byte[] command = commands.get(i);
+            ApduScript.Step step = parsed.steps.get(i);
 
-            log("[" + (i + 1) + "/" + commands.size() + "] " + labels.get(i));
-            log("--> " + HexUtil.toHex(command));
+            log("[" + (i + 1) + "/" + parsed.steps.size() + "] " + step.label);
+            log("--> " + HexUtil.toHex(step.command));
 
-            byte[] response = isoDep.transceive(command);
+            byte[] response = isoDep.transceive(step.command);
 
             /* 61 xx means more data is waiting, so fetch it. */
             if (response.length == 2 && (response[0] & 0xFF) == 0x61)
@@ -312,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
             log("<-- " + HexUtil.toHex(response));
             log(HexUtil.describeResponse(response) + "\n");
 
-            if (!isSuccess(response) && i < commands.size() - 1)
+            if (!isSuccess(response) && i < parsed.steps.size() - 1)
             {
                 log("Stopping here - later commands depend on this one succeeding.");
                 break;
@@ -338,36 +314,6 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
 
         log("NDEF message: " + HexUtil.toHex(message));
         log("\nDecoded:\n" + Type4TagReader.describeNdef(message));
-    }
-
-    /**
-     * Remove a trailing comment introduced by # or // and trim the result.
-     *
-     * @param line one raw line from the editor
-     * @return the line with any comment and surrounding space removed
-     */
-    private static String stripComment(String line)
-    {
-        int hash = line.indexOf('#');
-        int slashes = line.indexOf("//");
-        int cut = -1;
-
-        if (hash >= 0)
-        {
-            cut = hash;
-        }
-
-        if (slashes >= 0 && (cut < 0 || slashes < cut))
-        {
-            cut = slashes;
-        }
-
-        if (cut >= 0)
-        {
-            line = line.substring(0, cut);
-        }
-
-        return line.trim();
     }
 
     /**

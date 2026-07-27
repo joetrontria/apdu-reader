@@ -114,6 +114,26 @@ public final class HexUtil
         {
             meaning = "Class not supported";
         }
+        else if (sw1 == 0x67)
+        {
+            meaning = "Wrong length - check your Lc byte";
+        }
+        else if (sw1 == 0x69 && sw2 == 0x82)
+        {
+            meaning = "Security status not satisfied - tag is write protected";
+        }
+        else if (sw1 == 0x69 && sw2 == 0x85)
+        {
+            meaning = "Conditions not satisfied - select the file first";
+        }
+        else if (sw1 == 0x6B && sw2 == 0x00)
+        {
+            meaning = "Wrong P1/P2 - offset is past the end of the file";
+        }
+        else if (sw1 == 0x65 && sw2 == 0x81)
+        {
+            meaning = "Memory failure - write did not stick";
+        }
         else
         {
             meaning = "see ISO 7816-4";

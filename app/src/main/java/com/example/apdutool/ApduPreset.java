@@ -63,6 +63,15 @@ public class ApduPreset
                         new ApduPreset("6. READ BINARY - NDEF from offset 2",
                                 "00 B0 00 02 20"),
 
+                        new ApduPreset("W. UPDATE BINARY at offset 2",
+                                "write 0002 04 01 01"),
+
+                        new ApduPreset("W. Write whole message (safe)",
+                                "writemsg 04 01 01"),
+
+                        new ApduPreset("W. Set NLEN",
+                                "nlen 3"),
+
                         new ApduPreset("GET DATA (probe)",
                                 "00 CA 00 00 00"),
 
@@ -72,6 +81,23 @@ public class ApduPreset
                         new ApduPreset("SELECT PPSE (payment cards)",
                                 "00 A4 04 00 0E 32 50 41 59 2E 53 59 53 2E 44 44 46 30 31 00"),
                 };
+    }
+
+    /**
+     * A ready made write chain. Selecting the file first is mandatory, and
+     * writemsg handles the NLEN dance and counts Lc for you.
+     *
+     * @return a multi-line script ready to drop into the editor
+     */
+    public static String writeSequence()
+    {
+        return "# Write sequence - edit the bytes on the last line\n"
+                + "00 A4 04 00 07 D2 76 00 00 85 01 01 00   # SELECT NDEF application\n"
+                + "00 A4 00 0C 02 E1 03                     # SELECT CC file\n"
+                + "00 B0 00 00 0F                           # READ CC - last byte 00 means writable\n"
+                + "00 A4 00 0C 02 E1 04                     # SELECT NDEF file\n"
+                + "writemsg 04 01 01                        # your bytes - Lc and NLEN are automatic\n"
+                + "00 B0 00 00 10                           # read it back to confirm\n";
     }
 
     /**

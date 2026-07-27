@@ -82,6 +82,14 @@
             android:textSize="12sp" />
 
         <Button
+            android:id="@+id/write_sequence_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/load_write_sequence"
+            android:textSize="12sp" />
+
+        <Button
             android:id="@+id/clear_input_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
