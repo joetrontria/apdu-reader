@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         presetSpinner.setAdapter(adapter);
 
         /* Start with something useful already loaded. */
-        apduInput.setText(ApduPreset.type4Sequence());
+        apduInput.setText(ApduPreset.commandFileSequence());
         scriptText = apduInput.getText().toString();
 
         apduInput.addTextChangedListener(new SimpleTextWatcher()
@@ -100,6 +100,13 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         writeSequenceButton.setOnClickListener(v ->
         {
             apduInput.setText(ApduPreset.writeSequence());
+            scriptText = apduInput.getText().toString();
+        });
+
+        Button commandSequenceButton = findViewById(R.id.command_sequence_button);
+        commandSequenceButton.setOnClickListener(v ->
+        {
+            apduInput.setText(ApduPreset.commandFileSequence());
             scriptText = apduInput.getText().toString();
         });
 

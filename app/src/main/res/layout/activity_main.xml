@@ -78,8 +78,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/load_sequence"
-            android:textSize="12sp" />
+            android:text="@string/load_read_sequence"
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/write_sequence_button"
@@ -87,7 +87,22 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/load_write_sequence"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/command_sequence_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/load_command_sequence"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/clear_input_button"
@@ -95,7 +110,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/clear_input"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/clear_log_button"
@@ -103,7 +118,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/clear_log"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
     </LinearLayout>
 

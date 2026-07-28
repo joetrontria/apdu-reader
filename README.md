@@ -21,7 +21,7 @@ Type 4 tags speak ISO 7816-4 over ISO-DEP, so everything is plain APDUs:
 | 1 | `00 A4 04 00 07 D2760000850101 00` | SELECT the NDEF Tag Application by AID |
 | 2 | `00 A4 00 0C 02 E103` | SELECT the Capability Container file |
 | 3 | `00 B0 00 00 0F` | READ BINARY the 15-byte CC |
-| 4 | `00 A4 00 0C 02 <ndef file id>` | SELECT the NDEF file the CC points at |
+| 4 | `00 A4 00 0C 02 <ndef file id>` | SELECT the NDEF file the CC points at (read it from the CC, do not assume `E104`) |
 | 5 | `00 B0 00 00 02` | READ BINARY 2 bytes → NLEN |
 | 6 | `00 B0 00 02 <len>` | READ BINARY the message, chunked if needed |
 
@@ -75,3 +75,41 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The debug APK is signed with the standard debug key, which is fine for sideloading onto your own
 phone but not for the Play Store.
+
+## Writing
+
+Three directives save you counting `Lc` by hand. Put them on any line, mixed freely with raw hex.
+
+| Directive | Expands to | Use for |
+|---|---|---|
+| `write <offset-hex> <data...>` | one UPDATE BINARY at that offset | raw writes, proprietary files, error-path testing |
+| `writemsg <data...>` | NLEN=0, write at offset 2, NLEN=len | writing an NDEF message safely |
+| `nlen <decimal>` | UPDATE BINARY of the 2-byte length field | fixing NLEN by hand |
+
+`Lc` is always counted from the bytes you type. Data over 200 bytes is split across several
+UPDATE BINARY commands with incrementing offsets.
+
+## Target device notes (NHS2x34)
+
+The three template buttons are set up for this device:
+
+- **Read seq** — Type 4 read against NDEF file `0x1000`
+- **Write seq** — safe NDEF write to `0x1000` using `writemsg`
+- **Cmd seq** — raw command frame to the proprietary command file `0x1001`
+
+File IDs come from `descr->id = 0x1000 + fileNr`, so file #0 (`0x1000`) is NDEF and file #1
+(`0x1001`) is the command file routed to `kMSG_NFC_CMD`.
+
+Two things that matter for the command file:
+
+- It is **not** an NDEF file. There is no NLEN header, so the payload goes at **offset 0** using
+  `write 0000 ...`. Using `writemsg` here would put the bytes at offset 2 behind a length field
+  the firmware does not expect.
+- The device must be in `kSAFETY_DeviceState_ProductionMode` or the frame is rejected, and the
+  rejection is only visible in the device log, not in the APDU response.
+
+The application is configured as mapping version 2.0, so the instruction bytes are `B0`/`D6`,
+not the v3.0 extended `B1`/`D7`.
+
+If a SELECT-by-AID returns `6700` or `6A86`, drop its trailing `00` — that byte is `Le`, and some
+handlers only accept the case-3 form without it. Both variants are in the preset dropdown.
